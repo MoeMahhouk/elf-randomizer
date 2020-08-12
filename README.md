@@ -1,6 +1,6 @@
 # Purpose
 
-This creates a shuffled version of an arbitrary relocatable file (ELF).
+This creates a shuffled version of an arbitrary relocatable file (ELF). \
 It will be then used in the sgx-dl framework as an extra randomisation layer before dynamically loading the contents 
 
 # Prerequisites
