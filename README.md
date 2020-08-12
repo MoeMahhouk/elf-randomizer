@@ -5,7 +5,7 @@ It will be then used in the sgx-dl framework as an extra randomisation layer bef
 
 # Prerequisites
 
-- CMake Version > 3.10
+- CMake Version > 3.14   (ps: it can be lowered down since it doesnt require any special cmake new features)
 
 
 # Setup
