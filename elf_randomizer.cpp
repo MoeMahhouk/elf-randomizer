@@ -39,6 +39,7 @@ void Elf_randomizer::create_shuffled_elf(std::string &new_elf_name)
 
     update_indexs_map();
     Elf64_Shdr *symtab_ptr = NULL;
+    size_t ttl_needed_size = ehdr->e_ehsize;
 
     for (size_t i = 0; i < shnum; i++)
     {
@@ -78,7 +79,15 @@ void Elf_randomizer::create_shuffled_elf(std::string &new_elf_name)
                 exit(1);
             } 
         }
+        if(i != 0) 
+        {
+            auto needed_alignment_bytes = (shdr[i].sh_addralign - (ttl_needed_size % shdr[i].sh_addralign)) % shdr[i].sh_addralign;
+            ttl_needed_size += needed_alignment_bytes + shdr[i].sh_size;
+        }
     }
+    // the total needed size is needed to create new binary where the section are shuffled 
+    auto needed_alignment_bytes = (SH_TAB_ALIGN - (ttl_needed_size % SH_TAB_ALIGN)) % SH_TAB_ALIGN;
+    ttl_needed_size += needed_alignment_bytes;
 
     // fix symbol table indexes to the new ones
     auto total_syms = symtab_ptr->sh_size / sizeof(Elf64_Sym);
@@ -97,11 +106,56 @@ void Elf_randomizer::create_shuffled_elf(std::string &new_elf_name)
         }        
     }
 
+    void *shuffled_elf_file = NULL;
+    int diff = ttl_needed_size - ehdr->e_shoff;
+    printf("the diff is %d \n", diff);
+    //if(ttl_needed_size <= ehdr->e_shoff)
+    //{
+      //  diff = ehdr->e_shoff - ttl_needed_size; 
+       // shuffled_elf_file = calloc(1, _elf_size - diff);
+    //} else 
+    //{
+      //  diff = ttl_needed_size - ehdr->e_shoff;
+        shuffled_elf_file = calloc(1, _elf_size + diff);
+   // }
+    //memcpy(shuffled_elf_file, new_elf_file, _elf_size);
+    size_t curr_offset = 0;
+    for (size_t i = 0; i < shnum; i++)
+    {
+        if(i == 0)
+        {
+            memcpy(shuffled_elf_file, new_elf_file, ehdr->e_ehsize);
+            curr_offset += ehdr->e_ehsize;
+            Elf64_Ehdr *shuffled_ehdr = (Elf64_Ehdr*) shuffled_elf_file;
+            shuffled_ehdr->e_shoff = ttl_needed_size;
 
+        } else
+        {
+            
+            auto needed_align_bytes = (shdr[i].sh_addralign - (curr_offset % shdr[i].sh_addralign)) % shdr[i].sh_addralign;
+            curr_offset += needed_align_bytes;
+            memcpy(shuffled_elf_file + curr_offset, new_elf_file + shdr[i].sh_offset, shdr[i].sh_size);
+            shdr[i].sh_offset = curr_offset; //change the offsets to the new ones
+            curr_offset += shdr[i].sh_size;
+        }        
+    }
+    
+    //copy the rest as they are 
+    //auto needed_sh_tab_align = (SH_TAB_ALIGN - (curr_offset % SH_TAB_ALIGN)) % SH_TAB_ALIGN;
+    //curr_offset += needed_sh_tab_align;
+    printf("section header table is at %ld \n", ttl_needed_size);
+    printf("section header table ttl size is %ld \n", shnum * sizeof(Elf64_Shdr));
+    printf("old elf size %ld, new elf size %ld and the diff is %ld \n", _elf_size, _elf_size +diff ,_elf_size - ehdr->e_shoff);
+    //size_t section_header_size = ehdr->e_shnum * SH_TAB_ALIGN;
+    memcpy(shuffled_elf_file + ttl_needed_size, new_elf_file + ehdr->e_shoff, _elf_size - ehdr->e_shoff);
 
+    /*ttl_needed_size += section_header_size;
+    printf("total size of section headers %ld\n" , ttl_needed_size);
+    memcpy(shuffled_elf_file + ttl_needed_size, new_elf_file + ehdr->e_shoff + section_header_size, _elf_size - ttl_needed_size - diff);
+    */
 
     std::ofstream outfile (new_elf_name, std::ofstream::binary);
-    outfile.write((const char *)new_elf_file, _elf_size);
+    outfile.write((const char *)shuffled_elf_file, _elf_size);
     outfile.close();
 }        
 

@@ -39,6 +39,8 @@
 #include <random>
 #include <fstream>
 
+
+#define SH_TAB_ALIGN 8
 namespace elf_randomizer {
 
 typedef struct 
@@ -61,7 +63,6 @@ class Elf_randomizer {
         std::vector<Elf64_Shdr> shuffle_section_headers();
         void update_indexs_map();
 
-
         std::vector<Elf64_Shdr> old_shdrs;
         std::string _elf_path; 
         uint8_t *_elf_file;
@@ -69,7 +70,6 @@ class Elf_randomizer {
         std::string str_table_name;
         std::map<std::string, index_map_entry_t> _shdr_index_map;
         std::map<uint32_t, uint32_t> indexs_map;
-
 };
 
 }
