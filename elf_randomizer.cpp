@@ -155,7 +155,7 @@ void Elf_randomizer::create_shuffled_elf(std::string &new_elf_name)
     */
 
     std::ofstream outfile (new_elf_name, std::ofstream::binary);
-    outfile.write((const char *)shuffled_elf_file, _elf_size);
+    outfile.write((const char *)shuffled_elf_file, _elf_size + diff);
     outfile.close();
 }        
 
